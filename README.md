@@ -3,7 +3,7 @@ Platfromio Send text to 0.91  128X32 oled display from a web page
 
 IP is displayed on the OLED
 
-Optios for 2 fonts or show date and time
+Options for 2 fonts or show date and time
 
 Includes MDNS
 
