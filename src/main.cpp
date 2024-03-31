@@ -10,8 +10,8 @@
 #include <TimeLib.h>
 
 // Wi-Fi credentials
-const char* ssid = "shop2";
-const char* password = "mine0313";
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
 
 // OLED display settings
 #define SCREEN_WIDTH 128
