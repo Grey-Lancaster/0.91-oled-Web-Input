@@ -25,12 +25,14 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -4 * 3600, 60000); // NTP client for EDT timezone
 
 bool showTimeMode = false; // Flag to keep track of "Show Time" mode
+unsigned long lastSwitchTime = 0; // Last time the display switched between date and day
+bool showDate = true; // Flag to determine whether to show the date or day of the week
 
 void handleRoot() {
   server.send(200, "text/html",
     "Home of the Wizard<br>" 
     "For size 1 you have 4 lines 20 characters each line<br>" 
-    "For Size 2 you can only use the first 2 lines of 10 charcters each line<br>"
+    "For Size 2 you can only use the first 2 lines of 10 characters each line<br>"
     "<form action=\"/display\" method=\"POST\">"
     "Font Size: <input type=\"radio\" name=\"size\" value=\"1\" checked> 1"
     " <input type=\"radio\" name=\"size\" value=\"2\"> 2<br>"
@@ -48,26 +50,7 @@ void handleRoot() {
 void handleDisplay() {
   if (server.arg("action") == "Show Time") {
     showTimeMode = true; // Set the flag to true
-    timeClient.update(); // Update the time
-    display.clearDisplay();
-    display.setTextSize(2);
-    display.setCursor(0, 0);
-
-    // Get the current time
-    time_t now = timeClient.getEpochTime();
-    struct tm *timeinfo = localtime(&now);
-
-    // Format time as "HH:MM AM/PM"
-    char timeStr[11];
-    strftime(timeStr, sizeof(timeStr), "%I:%M %p", timeinfo);
-    display.println(timeStr);
-
-    // Format date as "MM/DD/YYYY"
-    char dateStr[11];
-    strftime(dateStr, sizeof(dateStr), "%m/%d/%Y", timeinfo);
-    display.println(dateStr);
-
-    display.display();
+    lastSwitchTime = millis(); // Reset the timer
   } else {
     showTimeMode = false; // Set the flag to false when displaying custom text
     int size = server.arg("size").toInt();
@@ -145,6 +128,11 @@ void loop() {
   MDNS.update(); // Update the mDNS responder
 
   if (showTimeMode) {
+    if (millis() - lastSwitchTime >= 3000) { // Switch every 3 seconds
+      showDate = !showDate; // Toggle between date and day
+      lastSwitchTime = millis(); // Reset the timer
+    }
+
     timeClient.update(); // Update the time
     display.clearDisplay();
     display.setTextSize(2);
@@ -154,15 +142,34 @@ void loop() {
     time_t now = timeClient.getEpochTime();
     struct tm *timeinfo = localtime(&now);
 
-    // Format time as "HH:MM AM/PM"
-    char timeStr[11];
-    strftime(timeStr, sizeof(timeStr), "%I:%M %p", timeinfo);
-    display.println(timeStr);
+    // Format time as "HH:MM:SS"
+    char timeStr[9];
+    strftime(timeStr, sizeof(timeStr), "%I:%M:%S", timeinfo);
+    display.print(timeStr);
 
-    // Format date as "MM/DD/YYYY"
-    char dateStr[11];
-    strftime(dateStr, sizeof(dateStr), "%m/%d/%Y", timeinfo);
-    display.println(dateStr);
+    // Display colon and AM/PM in font size 1 on the same line
+    display.setTextSize(1);
+    display.setCursor(108, 8); // Adjust cursor position for colon and AM/PM
+    display.print(":");
+    char ampmStr[3];
+    strftime(ampmStr, sizeof(ampmStr), "%p", timeinfo);
+    display.println(ampmStr);
+
+    // Switch back to font size 2 for the date or day
+    display.setTextSize(2);
+
+    // Display either the date or the day of the week
+    if (showDate) {
+      // Format date as "MM/DD/YYYY"
+      char dateStr[11];
+      strftime(dateStr, sizeof(dateStr), "%m/%d/%Y", timeinfo);
+      display.println(dateStr);
+    } else {
+      // Format day as "Day of the Week"
+      char dayStr[10];
+      strftime(dayStr, sizeof(dayStr), "%A", timeinfo);
+      display.println(dayStr);
+    }
 
     display.display();
   }
