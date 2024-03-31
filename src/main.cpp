@@ -5,6 +5,9 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <TimeLib.h>
 
 // Wi-Fi credentials
 const char* ssid = "shop2";
@@ -18,11 +21,12 @@ const char* password = "mine0313";
 Adafruit_SSD1306 display(128, 32, &Wire, OLED_RESET);
 
 ESP8266WebServer server(80);
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", -4 * 3600, 60000); // NTP client for EDT timezone
 
 void handleRoot() {
   server.send(200, "text/html",
     "Home of the Wizard<br>"  
-    "Font 2 only supports 2 lines of 10 characters<br>"
     "<form action=\"/display\" method=\"POST\">"
     "Font Size: <input type=\"radio\" name=\"size\" value=\"1\" checked> 1"
     " <input type=\"radio\" name=\"size\" value=\"2\"> 2<br>"
@@ -30,12 +34,36 @@ void handleRoot() {
     "Line 2: <input type=\"text\" name=\"line2\" maxlength=\"20\"><br>"
     "Line 3: <input type=\"text\" name=\"line3\" maxlength=\"20\"><br>"
     "Line 4: <input type=\"text\" name=\"line4\" maxlength=\"20\"><br>"
-    "<input type=\"submit\" value=\"Display\">"
+    "<input type=\"submit\" name=\"action\" value=\"Display Input\">"
+    "<br>"
+    "Or Show Time "
+    "<input type=\"submit\" name=\"action\" value=\"Show Time\">"
     "</form>");
 }
 
 void handleDisplay() {
-  if (server.hasArg("size") && server.hasArg("line1") && server.hasArg("line2")) {
+  if (server.arg("action") == "Show Time") {
+    timeClient.update(); // Update the time
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+
+    // Get the current time
+    time_t now = timeClient.getEpochTime();
+    struct tm *timeinfo = localtime(&now);
+
+    // Format time as "HH:MM AM/PM"
+    char timeStr[11];
+    strftime(timeStr, sizeof(timeStr), "%I:%M %p", timeinfo);
+    display.println(timeStr);
+
+    // Format date as "MM/DD/YYYY"
+    char dateStr[11];
+    strftime(dateStr, sizeof(dateStr), "%m/%d/%Y", timeinfo);
+    display.println(dateStr);
+
+    display.display();
+  } else if (server.hasArg("size") && server.hasArg("line1") && server.hasArg("line2")) {
     int size = server.arg("size").toInt();
     String line1 = server.arg("line1");
     String line2 = server.arg("line2");
@@ -55,6 +83,7 @@ void handleDisplay() {
   }
   server.send(200, "text/plain", "Text displayed!");
 }
+
 
 void setup() {
   Serial.begin(115200);
@@ -96,6 +125,9 @@ void setup() {
   } else {
     Serial.println("mDNS responder started");
   }
+
+  // Start NTP client
+  timeClient.begin();
 
   // Set up the web server
   server.on("/", HTTP_GET, handleRoot);
