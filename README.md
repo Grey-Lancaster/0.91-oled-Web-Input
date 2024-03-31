@@ -1,5 +1,9 @@
 # 0.91-oled-Web-Input
-Platfromio Send text to 0.91  128X32 oled display 
+Platfromio Send text to 0.91  128X32 oled display from a web page
+
+IP is displayed on the OLED
+
+Options for 2 fonts or show date and time
 
 Includes MDNS
 
