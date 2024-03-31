@@ -10,8 +10,8 @@
 #include <TimeLib.h>
 
 // Wi-Fi credentials
-const char* ssid = "YOUR_SSID";
-const char* password = "YOUR_PASSWORD";
+const char* ssid = "shop2";
+const char* password = "mine0313";
 
 // OLED display settings
 #define SCREEN_WIDTH 128
@@ -24,9 +24,13 @@ ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -4 * 3600, 60000); // NTP client for EDT timezone
 
+bool showTimeMode = false; // Flag to keep track of "Show Time" mode
+
 void handleRoot() {
   server.send(200, "text/html",
-    "Home of the Wizard<br>"  
+    "Home of the Wizard<br>" 
+    "For size 1 you have 4 lines 20 characters each line<br>" 
+    "For Size 2 you can only use the first 2 lines of 10 charcters each line<br>"
     "<form action=\"/display\" method=\"POST\">"
     "Font Size: <input type=\"radio\" name=\"size\" value=\"1\" checked> 1"
     " <input type=\"radio\" name=\"size\" value=\"2\"> 2<br>"
@@ -43,6 +47,7 @@ void handleRoot() {
 
 void handleDisplay() {
   if (server.arg("action") == "Show Time") {
+    showTimeMode = true; // Set the flag to true
     timeClient.update(); // Update the time
     display.clearDisplay();
     display.setTextSize(2);
@@ -63,7 +68,8 @@ void handleDisplay() {
     display.println(dateStr);
 
     display.display();
-  } else if (server.hasArg("size") && server.hasArg("line1") && server.hasArg("line2")) {
+  } else {
+    showTimeMode = false; // Set the flag to false when displaying custom text
     int size = server.arg("size").toInt();
     String line1 = server.arg("line1");
     String line2 = server.arg("line2");
@@ -83,7 +89,6 @@ void handleDisplay() {
   }
   server.send(200, "text/plain", "Text displayed!");
 }
-
 
 void setup() {
   Serial.begin(115200);
@@ -138,5 +143,29 @@ void setup() {
 void loop() {
   server.handleClient();
   MDNS.update(); // Update the mDNS responder
+
+  if (showTimeMode) {
+    timeClient.update(); // Update the time
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+
+    // Get the current time
+    time_t now = timeClient.getEpochTime();
+    struct tm *timeinfo = localtime(&now);
+
+    // Format time as "HH:MM AM/PM"
+    char timeStr[11];
+    strftime(timeStr, sizeof(timeStr), "%I:%M %p", timeinfo);
+    display.println(timeStr);
+
+    // Format date as "MM/DD/YYYY"
+    char dateStr[11];
+    strftime(dateStr, sizeof(dateStr), "%m/%d/%Y", timeinfo);
+    display.println(dateStr);
+
+    display.display();
+  }
+
   yield(); // Yield in the main loop to prevent watchdog timer resets
 }
