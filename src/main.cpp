@@ -21,7 +21,11 @@ ESP8266WebServer server(80);
 
 void handleRoot() {
   server.send(200, "text/html",
+    "Home of the Wizard<br>"  
+    "Font 2 only supports 2 lines of 10 characters<br>"
     "<form action=\"/display\" method=\"POST\">"
+    "Font Size: <input type=\"radio\" name=\"size\" value=\"1\" checked> 1"
+    " <input type=\"radio\" name=\"size\" value=\"2\"> 2<br>"
     "Line 1: <input type=\"text\" name=\"line1\" maxlength=\"20\"><br>"
     "Line 2: <input type=\"text\" name=\"line2\" maxlength=\"20\"><br>"
     "Line 3: <input type=\"text\" name=\"line3\" maxlength=\"20\"><br>"
@@ -31,18 +35,22 @@ void handleRoot() {
 }
 
 void handleDisplay() {
-  if (server.hasArg("line1") && server.hasArg("line2") && server.hasArg("line3") && server.hasArg("line4")) {
+  if (server.hasArg("size") && server.hasArg("line1") && server.hasArg("line2")) {
+    int size = server.arg("size").toInt();
     String line1 = server.arg("line1");
     String line2 = server.arg("line2");
     String line3 = server.arg("line3");
     String line4 = server.arg("line4");
 
     display.clearDisplay();
+    display.setTextSize(size);
     display.setCursor(0, 0);
     display.println(line1);
     display.println(line2);
-    display.println(line3);
-    display.println(line4);
+    if (size == 1) {
+      display.println(line3);
+      display.println(line4);
+    }
     display.display();
   }
   server.send(200, "text/plain", "Text displayed!");
