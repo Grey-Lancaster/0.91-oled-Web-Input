@@ -148,9 +148,9 @@ void loop() {
     display.print(timeStr);
 
     // Display colon and AM/PM in font size 1 on the same line
-    display.setTextSize(1);
-    display.setCursor(108, 8); // Adjust cursor position for colon and AM/PM
-    display.print(":");
+    display.setTextSize(2);
+    display.setCursor(100, 0); // Adjust cursor position for colon and AM/PM
+    //display.print(":");
     char ampmStr[3];
     strftime(ampmStr, sizeof(ampmStr), "%p", timeinfo);
     display.println(ampmStr);
